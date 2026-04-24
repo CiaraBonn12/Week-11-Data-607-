@@ -1,0 +1,25 @@
+---
+title: "Personalized Recommendation System"
+author: "Ciara Bonnett"
+format: html
+editor: visual
+---
+
+## Introduction 
+In this project, I will be building a personalized recommendation system using movie survey data. This analysis focuses on User-to-User Collaborative Filtering to provide suggestions tailored to individual user tastes.
+
+## Approach
+I will transform the raw survey data from a long format into a sparse user item matrix. This is necessary for calculating similarities between users. 
+
+I have chosen UBCF because it helps to identify neighbors with similar rating histories and predicts ratings for unobserved items based on what those similar neighbors liked. 
+
+I plan to use Cosine Similarity or Pearson Correlation to measure the distance between users in the rating space. The system will be configured to output the Top 5 recommended movies for each user that they have not yet seen.
+
+To make sure this is fully reproducible, I will host the survey dataset on Github so the model can be pulled and my final submission shall include training logic, the resulting recommendation lists, and performance evaluation.
+
+## Challenges
+Survey data tends to have many missing values because most users have only rated a small fraction of the available movies. I need to use the `recommenderlab` package to handle these `NA` values without breaking the similarity calculations.
+
+There could possibly be a cold start problem where a user has only provided a few ratings and then it becomes difficult to find accurate neighbors. I will need to implement a given threshold during evaluations to ensure users have enough history to be analyzed. 
+
+Unlike a global average, a personalized system is harder to validate. I plan to use a 70/30 train test split and measure the Root Mean Squared Error to quantify how closely my model predicts actual user preferences. 
