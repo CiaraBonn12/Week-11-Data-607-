@@ -1,0 +1,90 @@
+---
+title: "Personalized Recommendation System"
+author: "Ciara Bonnett"
+format: html
+editor: visual
+---
+
+## Introduction 
+In this project, I will be building a personalized recommendation system using movie survey data. This analysis focuses on User-to-User Collaborative Filtering to provide suggestions tailored to individual user tastes.
+
+## Approach
+I will transform the raw survey data from a long format into a sparse user item matrix. This is necessary for calculating similarities between users. 
+
+I have chosen UBCF because it helps to identify neighbors with similar rating histories and predicts ratings for unobserved items based on what those similar neighbors liked. 
+
+I plan to use Cosine Similarity or Pearson Correlation to measure the distance between users in the rating space. The system will be configured to output the Top 5 recommended movies for each user that they have not yet seen.
+
+To make sure this is fully reproducible, I will host the survey dataset on Github so the model can be pulled and my final submission shall include training logic, the resulting recommendation lists, and performance evaluation.
+
+## Challenges
+Survey data tends to have many missing values because most users have only rated a small fraction of the available movies. I need to use the `recommenderlab` package to handle these `NA` values without breaking the similarity calculations.
+
+There could possibly be a cold start problem where a user has only provided a few ratings and then it becomes difficult to find accurate neighbors. I will need to implement a given threshold during evaluations to ensure users have enough history to be analyzed. 
+
+Unlike a global average, a personalized system is harder to validate. I plan to use a 70/30 train test split and measure the Root Mean Squared Error to quantify how closely my model predicts actual user preferences. 
+
+## Code Deliverable
+```{r}
+library(tidyverse)
+library(recommenderlab)
+
+url <- "https://raw.githubusercontent.com/CiaraBonn12/Week-11-Data-607-/refs/heads/main/ratings.csv"
+
+raw_data <- read_csv(url) %>%
+  select(userId, movieId, rating)
+
+ratings_wide <- raw_data %>%
+  pivot_wider(names_from = movieId, values_from = rating ) %>%
+  column_to_rownames("userId")
+ratings_matrix <- as(as.matrix(ratings_wide), "realRatingMatrix")
+rec_model <- Recommender(data = ratings_matrix,
+                                method = "UBCF",    parameter = list(method = "Cosine", nn = 30))
+recom_list <- predict(rec_model, ratings_matrix[1:5], n = 5)
+as(recom_list, "list")
+
+eval_scheme <- evaluationScheme(ratings_matrix, method="split", train=0.8, given=3, goodRating=4)
+eval_rec <- Recommender(getData(eval_scheme, "train"),"UBCF")
+eval_pred <- predict(eval_rec, getData(eval_scheme, "known"), type="ratings")
+
+rmse_results <- calcPredictionAccuracy(eval_pred, getData(eval_scheme, "unknown"))
+print(rmse_results)
+```
+## Analysis
+My analysis began by transforming a long-format dataset of 100,000 ratings into a Sparse Rating Matrix. Most cells in this matrix are empty (NAs), representing movies users haven't seen. Unlike a standard database, this matrix allows the `recommenderlab` algorithm to calculate the "distance" between users based only on the movies they both rated.
+
+By using Cosine Similarity, the model identified the top 30 "neighbors" for each user. The top-ranked movies for User 1 were entirely different from the top-ranked movies for User 500. While a Global Baseline would suggest The Shawshank Redemption to everyone because of its high average, my UBCF model suggested niche genres to specific users because their "neighbors" liked them.
+
+Using an 80/20 split, I calculated the RMSE (Root Mean Squared Error.)
+
+## Conclusion
+The project successfully transitioned from a non-personalized baseline to a system that recognizes individual taste. User-to-User filtering is highly effective for this dataset because the MovieLens community has enough overlapping ratings to find strong "neighbors."
+
+Users with very few ratings were difficult to provide recommendations for. In a production environment, these users might still need the Global Baseline until they rate more films. As the matrix grows, calculating similarities for every user pair becomes computationally expensive.
+
+To improve, accuracy, a future version could combine this Collaborative Filtering with Content-Based Filtering to better recommend movies that are brand new and have no ratings yet. Implementing SVD could help fill in the "holes" in the sparse matrix more efficiently than neighbor-based methods.
+
+## AI Transcript
+User Prompt: "I need to build a personalized recommendation system. What algorithm should I use for survey-style movie data?"
+
+AI Response: Gemini suggested User-to-User Collaborative Filtering (UBCF). It explained that while a Global Baseline is good for popularity, UBCF uses Cosine Similarity to find specific user "neighbors," making it a perfect fit for the MovieLens dataset.
+
+User Prompt: "How do I make sure my code runs for the professor without them having my local files?"
+
+AI Response: Gemini instructed me on how to host the ratings.csv on GitHub and, crucially, how to use the "Raw" URL. This ensured that the read_csv() function pulls from the cloud, making the Quarto document fully reproducible.
+
+User Prompt: "Error in library(recommenderlab) : there is no package called ‘recommenderlab’"
+
+AI Response: Gemini provided the install.packages() command and explained that recommenderlab is not a base R package.
+
+User Prompt: "Error in .local(data, ...) : unused argument (Rating = 4)"
+
+AI Response: Gemini identified a syntax typo in the evaluationScheme function. It corrected the argument name to goodRating = 4, explaining that this parameter defines the threshold for what the system considers a "successful" recommendation.
+
+User Prompt: "Error: could not find function 'calcPredictAccuracy'"
+
+AI Response: Gemini identified a misspelling and provided the correct function name: calcPredictionAccuracy.
+
+User Prompt: "My results are RMSE: 1.146, MSE: 1.313, MAE: 0.880. Is this good?"
+
+AI Response: Gemini provided a statistical interpretation. It explained that an RMSE of ~1.1 is a strong result for MovieLens, indicating the model is accurate within roughly one star. It also explained the difference between RMSE and MAE, noting that RMSE penalizes larger errors more heavily.
